@@ -1,0 +1,16 @@
+{
+  "name": "resume-analyzer-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "multer": "^2.4.0",
+    "pdf-parse": "^2.4.5"
+  }
+}

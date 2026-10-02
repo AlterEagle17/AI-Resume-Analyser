@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@layer base {
+	body {
+		min-width: 320px;
+		margin: 0;
+	}
+
+	button,
+	input,
+	select {
+		font: inherit;
+	}
+}
