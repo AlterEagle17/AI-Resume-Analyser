@@ -246,3 +246,21 @@ Upload resume
 
 ### Revisit when
 The core workflow is stable and additional user needs are identified.
+
+## Target job role input
+
+Decision:
+Allow users to type any target job role.
+
+Options considered:
+- Fixed dropdown roles
+- Free-text job role
+
+Chosen:
+Free-text job role.
+
+Why:
+Job titles vary widely, and users may apply for roles that are not included in a predefined list.
+
+Revisit when:
+The application needs standardized role taxonomy, job-role suggestions, or role-specific templates.

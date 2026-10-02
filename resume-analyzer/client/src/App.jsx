@@ -5,30 +5,11 @@ import { analyzeResume } from './lib/api.js';
 
 const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024;
 
-const MOCK_ANALYSIS = {
-  score: 82,
-  verdict: 'Strong match',
-  targetRole: 'Full-stack developer',
-  skillsFound: ['React', 'Node.js', 'MongoDB', 'REST APIs'],
-  skillsMissing: ['Testing', 'Docker'],
-  topFixes: [
-    'Add testing experience to your projects.',
-    'Mention Docker or containerization experience.',
-    'Add measurable results to your project descriptions.',
-  ],
-};
-
-const TARGET_ROLES = [
-  'Frontend developer',
-  'Backend developer',
-  'Full-stack developer',
-  'AI engineer',
-];
-
 export default function App() {
   const [appState, setAppState] = useState('idle');
   const [selectedFile, setSelectedFile] = useState(null);
-  const [targetRole, setTargetRole] = useState('Full-stack developer');
+  const [targetRole, setTargetRole] = useState('');
+  const [roleError, setRoleError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [analysis, setAnalysis] = useState(null);
 
@@ -59,20 +40,30 @@ export default function App() {
     setAppState('idle');
   }
 
+  function handleRoleChange(value) {
+    setTargetRole(value);
+    if (value.trim()) setRoleError('');
+  }
+
+  function handleRoleBlur() {
+    setRoleError(targetRole.trim() ? '' : "Enter the job role you're applying for.");
+  }
+
   async function handleAnalyse(event) {
     event.preventDefault();
+    const trimmedRole = targetRole.trim();
+    if (!trimmedRole) {
+      setRoleError("Enter the job role you're applying for.");
+      return;
+    }
     if (!selectedFile || appState === 'loading') return;
 
     setAppState('loading');
     setErrorMessage('');
 
     try {
-      const response = await analyzeResume(selectedFile, targetRole);
-      setAnalysis({
-        ...MOCK_ANALYSIS,
-        targetRole: response.targetRole,
-        characters: response.characters,
-      });
+      const response = await analyzeResume(selectedFile, trimmedRole);
+      setAnalysis(response);
       setAppState('done');
     } catch (error) {
       setErrorMessage(error.message || 'The analysis could not be completed. Please try again.');
@@ -118,9 +109,10 @@ export default function App() {
           <ResumeForm
             selectedFile={selectedFile}
             targetRole={targetRole}
-            targetRoles={TARGET_ROLES}
+            roleError={roleError}
             onFileChange={handleFileChange}
-            onRoleChange={setTargetRole}
+            onRoleChange={handleRoleChange}
+            onRoleBlur={handleRoleBlur}
             onSubmit={handleAnalyse}
           />
         )}
@@ -158,7 +150,7 @@ export default function App() {
           </section>
         )}
 
-        <p className="mt-5 text-center text-xs text-stone-500">Demo mode · your PDF is not uploaded.</p>
+        <p className="mt-5 text-center text-xs text-stone-500">Processed in memory · PDF is not stored.</p>
       </div>
     </main>
   );

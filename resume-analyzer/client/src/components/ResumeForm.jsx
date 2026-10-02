@@ -5,9 +5,10 @@ function formatFileSize(sizeInBytes) {
 export default function ResumeForm({
   selectedFile,
   targetRole,
-  targetRoles,
+  roleError,
   onFileChange,
   onRoleChange,
+  onRoleBlur,
   onSubmit,
 }) {
   return (
@@ -60,25 +61,30 @@ export default function ResumeForm({
 
       <div className="mt-5">
         <label className="mb-2 block text-sm font-semibold" htmlFor="target-role">
-          Target role
+          Target job role
         </label>
-        <select
+        <input
           className="min-h-12 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
           id="target-role"
+          maxLength={100}
+          onBlur={onRoleBlur}
           onChange={(event) => onRoleChange(event.target.value)}
+          placeholder="e.g. Full Stack Developer"
+          type="text"
           value={targetRole}
-        >
-          {targetRoles.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
+          aria-describedby={roleError ? 'target-role-error' : undefined}
+          aria-invalid={Boolean(roleError)}
+        />
+        {roleError && (
+          <p className="mt-2 text-sm text-rose-700" id="target-role-error" role="alert">
+            {roleError}
+          </p>
+        )}
       </div>
 
       <button
         className="mt-7 min-h-12 w-full rounded-xl bg-[#d4f34a] px-5 text-sm font-bold text-stone-900 transition hover:bg-[#c7e83d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-500"
-        disabled={!selectedFile}
+        disabled={!selectedFile || !targetRole.trim()}
         type="submit"
       >
         Analyse resume

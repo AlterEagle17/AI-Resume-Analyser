@@ -1,7 +1,7 @@
 export async function analyzeResume(file, targetRole) {
   const formData = new FormData();
   formData.append('resume', file);
-  formData.append('targetRole', targetRole);
+  formData.append('targetRole', targetRole.trim());
 
   let response;
   try {

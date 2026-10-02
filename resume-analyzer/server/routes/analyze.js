@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { isTargetRole, TARGET_ROLES } from '../lib/roles.js';
 import { readResume } from '../lib/readResume.js';
+import { analyzeResume } from '../lib/analyzeResume.js';
+import { InvalidAnalysisResponseError } from '../lib/analysisSchema.js';
 import { ApiError } from '../middleware/errors.js';
 
 const MAX_PDF_SIZE_BYTES = 4 * 1024 * 1024;
@@ -30,11 +31,13 @@ router.post('/', upload.single('resume'), async (request, response, next) => {
 		return next(new ApiError(400, 'A resume PDF is required.'));
 	}
 
-	const targetRole = request.body?.targetRole;
-	if (!isTargetRole(targetRole)) {
-		return next(
-			new ApiError(400, `Invalid target role. Choose one of: ${TARGET_ROLES.join(', ')}.`),
-		);
+	const submittedRole = request.body?.targetRole;
+	if (typeof submittedRole !== 'string' || !submittedRole.trim()) {
+		return next(new ApiError(400, 'Enter the job role you are applying for.'));
+	}
+	const targetRole = submittedRole.trim();
+	if (targetRole.length > 100) {
+		return next(new ApiError(400, 'Target job role must be 100 characters or fewer.'));
 	}
 
 	let text;
@@ -52,11 +55,21 @@ router.post('/', upload.single('resume'), async (request, response, next) => {
 		);
 	}
 
-	return response.status(200).json({
-		targetRole,
-		characters: text.length,
-		preview: text.slice(0, 300),
-	});
+	try {
+		const result = await analyzeResume(text, targetRole);
+		return response.status(200).json({ ...result, characters: text.length });
+	} catch (error) {
+		if (error instanceof InvalidAnalysisResponseError) {
+			return next(new ApiError(502, 'The AI returned an invalid analysis. Please try again.'));
+		}
+
+		if (error.code === 'MISSING_GROQ_API_KEY') {
+			console.error('[AI] GROQ_API_KEY is not configured on the server.');
+			return next(new ApiError(503, 'Resume analysis is not configured on the server yet.'));
+		}
+
+		return next(new ApiError(502, 'Resume analysis is temporarily unavailable. Please try again.'));
+	}
 });
 
 export default router;
