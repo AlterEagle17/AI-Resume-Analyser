@@ -13,6 +13,11 @@ console.info(`[DEBUG] GROQ_API_KEY configured: ${Boolean(process.env.GROQ_API_KE
 console.info(`[DEBUG] GROQ_MODEL: ${getConfiguredModel()}`);
 console.info(`[DEBUG] DAILY_AI_BUDGET_INR: ${getDailyBudgetInr()}`);
 
+app.use(async (_request, _response, next) => {
+  await connectToDatabase();
+  next();
+});
+
 app.get('/api/health', (_request, response) => {
   response.status(200).json({ status: 'ok' });
 });
@@ -21,8 +26,11 @@ app.use('/api/analyze', analyzeRouter);
 app.use('/api/history', historyRouter);
 app.use(errorHandler);
 
-connectToDatabase();
+export default app;
 
-app.listen(port, () => {
-  console.info(`[Server] Listening on http://localhost:${port}`);
-});
+if (process.env.VERCEL !== '1') {
+  connectToDatabase();
+  app.listen(port, () => {
+    console.info(`[Server] Listening on http://localhost:${port}`);
+  });
+}
