@@ -1,17 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AnalysisResult from './components/AnalysisResult.jsx';
+import RecentAnalyses from './components/RecentAnalyses.jsx';
 import ResumeForm from './components/ResumeForm.jsx';
-import { analyzeResume } from './lib/api.js';
+import { analyzeResume, getAnalysisHistory } from './lib/api.js';
+import { getOrCreateUserId } from './lib/userId.js';
 
 const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024;
 
 export default function App() {
+  const [userId] = useState(getOrCreateUserId);
   const [appState, setAppState] = useState('idle');
   const [selectedFile, setSelectedFile] = useState(null);
   const [targetRole, setTargetRole] = useState('');
   const [roleError, setRoleError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [analysis, setAnalysis] = useState(null);
+  const [recentAnalyses, setRecentAnalyses] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(false);
+
+  async function refreshHistory() {
+    try {
+      const history = await getAnalysisHistory(userId);
+      setRecentAnalyses(history.analyses);
+      setHistoryError(false);
+    } catch {
+      setHistoryError(true);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refreshHistory();
+  }, [userId]);
 
   function handleFileChange(event) {
     const file = event.currentTarget.files?.[0];
@@ -62,9 +84,10 @@ export default function App() {
     setErrorMessage('');
 
     try {
-      const response = await analyzeResume(selectedFile, trimmedRole);
+      const response = await analyzeResume(selectedFile, trimmedRole, userId);
       setAnalysis(response);
       setAppState('done');
+      refreshHistory();
     } catch (error) {
       setErrorMessage(error.message || 'The analysis could not be completed. Please try again.');
       setAppState('error');
@@ -149,6 +172,8 @@ export default function App() {
             </button>
           </section>
         )}
+
+        <RecentAnalyses analyses={recentAnalyses} loading={historyLoading} error={historyError} />
 
         <p className="mt-5 text-center text-xs text-stone-500">Processed in memory · PDF is not stored.</p>
       </div>

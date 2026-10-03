@@ -3,6 +3,7 @@ import multer from 'multer';
 import { readResume } from '../lib/readResume.js';
 import { analyzeResume } from '../lib/analyzeResume.js';
 import { InvalidAnalysisResponseError } from '../lib/analysisSchema.js';
+import { isValidUserId, saveAnalysisForUser, touchAnonymousUser } from '../lib/analysisHistory.js';
 import { ApiError } from '../middleware/errors.js';
 
 const MAX_PDF_SIZE_BYTES = 4 * 1024 * 1024;
@@ -13,7 +14,7 @@ const upload = multer({
 	limits: {
 		fileSize: MAX_PDF_SIZE_BYTES,
 		files: 1,
-		fields: 1,
+		fields: 2,
 		fieldSize: 128,
 	},
 	fileFilter(_request, file, callback) {
@@ -26,7 +27,19 @@ const upload = multer({
 	},
 });
 
-router.post('/', upload.single('resume'), async (request, response, next) => {
+router.post('/', (request, _response, next) => {
+	console.info('[Upload] analyze request received');
+	next();
+}, upload.single('resume'), async (request, response, next) => {
+	console.info('[Upload] request details:', {
+		filePresent: Boolean(request.file),
+		fileName: request.file?.originalname ?? null,
+		fileMimetype: request.file?.mimetype ?? null,
+		fileSize: request.file?.size ?? null,
+		targetRole: request.body?.targetRole ?? null,
+		userId: request.body?.userId ?? null,
+	});
+
 	if (!request.file) {
 		return next(new ApiError(400, 'A resume PDF is required.'));
 	}
@@ -39,6 +52,12 @@ router.post('/', upload.single('resume'), async (request, response, next) => {
 	if (targetRole.length > 100) {
 		return next(new ApiError(400, 'Target job role must be 100 characters or fewer.'));
 	}
+	const userId = request.body?.userId;
+	if (!isValidUserId(userId)) {
+		return next(new ApiError(400, 'A valid anonymous user ID is required.'));
+	}
+
+	await touchAnonymousUser(userId);
 
 	let text;
 	try {
@@ -57,7 +76,9 @@ router.post('/', upload.single('resume'), async (request, response, next) => {
 
 	try {
 		const result = await analyzeResume(text, targetRole);
-		return response.status(200).json({ ...result, characters: text.length });
+		await saveAnalysisForUser(userId, result);
+		const { costInr: _costInr, ...publicResult } = result;
+		return response.status(200).json({ ...publicResult, characters: text.length });
 	} catch (error) {
 		if (error instanceof InvalidAnalysisResponseError) {
 			return next(new ApiError(502, 'The AI returned an invalid analysis. Please try again.'));

@@ -1,32 +1,51 @@
 export default function AnalysisResult({ analysis, onAnalyseAnother }) {
+  const isFallback = analysis.fallback === true;
+
   return (
     <section aria-labelledby="result-title" className="space-y-4">
+      {isFallback && (
+        <div
+          aria-live="polite"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          role="status"
+        >
+          AI analysis is temporarily unavailable. This result is a skill match only.
+        </div>
+      )}
       <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-7">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase text-emerald-800">Resume score</p>
-            <h2 className="mt-2 flex items-baseline gap-2" id="result-title">
-              <span className="font-serif text-6xl leading-none">{analysis.score}</span>
-              <span className="text-lg text-stone-500">/100</span>
-            </h2>
-          </div>
-          <div className="sm:text-right">
-            <span className="inline-flex rounded-full bg-[#edf7c7] px-3 py-1.5 text-sm font-semibold text-emerald-950">
-              {analysis.verdict}
-            </span>
+        <div className={`flex flex-col gap-5 ${isFallback ? '' : 'sm:flex-row sm:items-center sm:justify-between'}`}>
+          {!isFallback && (
+            <div>
+              <p className="text-xs font-bold uppercase text-emerald-800">Resume score</p>
+              <h2 className="mt-2 flex items-baseline gap-2" id="result-title">
+                <span className="font-serif text-6xl leading-none">{analysis.score}</span>
+                <span className="text-lg text-stone-500">/100</span>
+              </h2>
+            </div>
+          )}
+          <div className={isFallback ? '' : 'sm:text-right'}>
+            {isFallback ? (
+              <h2 className="font-serif text-2xl" id="result-title">{analysis.verdict}</h2>
+            ) : (
+              <span className="inline-flex rounded-full bg-[#edf7c7] px-3 py-1.5 text-sm font-semibold text-emerald-950">
+                {analysis.verdict}
+              </span>
+            )}
             <p className="mt-2 text-sm text-stone-500">For {analysis.targetRole}</p>
           </div>
         </div>
-        <div
-          aria-label={`Score ${analysis.score} out of 100`}
-          className="mt-6 h-2 overflow-hidden rounded-full bg-stone-100"
-          role="img"
-        >
+        {!isFallback && (
           <div
-            className="h-full rounded-full bg-[#b5d72e]"
-            style={{ width: `${analysis.score}%` }}
-          />
-        </div>
+            aria-label={`Score ${analysis.score} out of 100`}
+            className="mt-6 h-2 overflow-hidden rounded-full bg-stone-100"
+            role="img"
+          >
+            <div
+              className="h-full rounded-full bg-[#b5d72e]"
+              style={{ width: `${analysis.score}%` }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -60,7 +79,9 @@ export default function AnalysisResult({ analysis, onAnalyseAnother }) {
       </div>
 
       <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-7">
-        <h3 className="font-serif text-2xl">Three ways to strengthen it</h3>
+        <h3 className="font-serif text-2xl">
+          {isFallback ? 'Skill match suggestions' : 'Three ways to strengthen it'}
+        </h3>
         {analysis.characters !== undefined && (
           <p className="mt-2 text-sm text-stone-500">
             {analysis.characters.toLocaleString()} resume characters reviewed

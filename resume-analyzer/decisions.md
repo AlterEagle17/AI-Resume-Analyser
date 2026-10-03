@@ -264,3 +264,41 @@ Job titles vary widely, and users may apply for roles that are not included in a
 
 Revisit when:
 The application needs standardized role taxonomy, job-role suggestions, or role-specific templates.
+
+## P09 daily AI cost protection
+
+Decision:
+Estimate Groq token spend in INR and enforce a configurable daily budget using an in-memory tracker keyed to the IST calendar date.
+
+Options considered:
+- Make Groq calls without a budget guard.
+- Add persistent spending storage before the core flow requires it.
+- Use a process-local daily tracker with pre-request reservations.
+
+Chosen:
+Use a process-local daily tracker, reserve a conservative per-attempt estimate before each Groq call, and settle the reservation using returned token usage when available.
+
+Why:
+This protects the V1 API from knowingly calling Groq beyond its daily budget while keeping P09 independent of deferred MongoDB work. Unsupported models fail closed until their prices are added to the centralized cost configuration.
+
+Revisit when:
+The application runs across multiple server instances or requires persistent, cross-instance budget accounting.
+
+## P10 anonymous analysis persistence
+
+Decision:
+Use MongoDB Atlas with `users` and `analyses` collections, associating analyses to an anonymous browser UUID.
+
+Options considered:
+- Keep analysis history only in browser memory.
+- Add authenticated accounts before persistence.
+- Persist minimal anonymous user and analysis metadata in MongoDB.
+
+Chosen:
+Persist a browser-generated UUID and analysis result metadata only. Keep resume PDFs and extracted text out of the database.
+
+Why:
+Users can review recent results without introducing authentication, while avoiding storage of sensitive resume content.
+
+Revisit when:
+Authentication, cross-device history, multi-instance consistency, retention controls, or deletion workflows are required.
